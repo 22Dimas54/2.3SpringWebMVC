@@ -6,6 +6,7 @@ import ru.netology.model.Post;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -27,7 +28,8 @@ public class PostRepositoryStubImpl implements PostRepository {
     List<Post> postList =
             concurrentHashMap.entrySet()
                     .stream()
-                    .map(e -> e.getValue())
+                    .filter(e -> !e.getValue().isRemoved())
+                    .map(Map.Entry::getValue)
                     .collect(toList());
     return postList;
   }
@@ -35,7 +37,11 @@ public class PostRepositoryStubImpl implements PostRepository {
   public Optional<Post> getById(long id) {
     if (concurrentHashMap.containsKey(Math.toIntExact(id))) {
       var foundPost = concurrentHashMap.get(Math.toIntExact(id));
-      return Optional.of(foundPost);
+      if (!foundPost.isRemoved()) {
+        return Optional.of(foundPost);
+      } else {
+        return Optional.empty();
+      }
     } else {
       return Optional.empty();
     }
@@ -60,7 +66,8 @@ public class PostRepositoryStubImpl implements PostRepository {
 
   public void removeById(long id) throws NotFoundException {
     if (concurrentHashMap.containsKey(Math.toIntExact(id))) {
-      concurrentHashMap.remove(Math.toIntExact(id));
+      var foundPost = concurrentHashMap.get(Math.toIntExact(id));
+      foundPost.setRemoved(true);
     } else {
       throw new NotFoundException("Not found");
     }
